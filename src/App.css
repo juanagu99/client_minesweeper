@@ -1,0 +1,22 @@
+.App {
+  text-align: center;  
+}
+
+.Form-container {
+  background-color: #a0a0a0;
+  min-height: 10vh;
+  padding: 10px;
+  display: flex;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.Table-container {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
