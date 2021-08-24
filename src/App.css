@@ -1,5 +1,5 @@
 .App {
-  text-align: center;  
+  text-align: center;
 }
 
 .Form-container {
@@ -19,4 +19,9 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
+}
+
+.board-cell {
+  height: 50px;
+  width: 50px;
 }

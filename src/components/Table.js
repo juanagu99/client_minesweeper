@@ -39,6 +39,7 @@ function Table(props) {
           {cell["hiden"] === true ? (
             <Button
               Active
+              className="board-cell"
               onClick={(e) => props.clickPosition(e, cell["x"], cell["y"])} //left clcik
               onContextMenu={(e) =>
                 //right click
@@ -50,6 +51,7 @@ function Table(props) {
           ) : (
             <Button
               disabled
+              className="board-cell"
               onClick={(e) => props.clickPosition(e, cell["x"], cell["y"])} //left clcik
               onContextMenu={(e) =>
                 //right click
