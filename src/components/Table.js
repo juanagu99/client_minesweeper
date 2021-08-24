@@ -13,7 +13,10 @@ function Table(props) {
         row.map((cell) => (
 
           <td >
-            <Button onClick={() => props.clickPosition(cell['x'],cell['y'])}>
+            <Button 
+            onClick={(e) => props.clickPosition(e,cell['x'],cell['y'])} //left clcik
+            onContextMenu = {(e) => props.clickPosition(e,cell['x'],cell['y'])} //right click
+            >
               {
                 /* 
                   boardServer: -1 : Una mina, el resto son números de 0 hasta 8 según la cantidad de minas adyacentes
@@ -23,7 +26,7 @@ function Table(props) {
                   parseInt(cell['active']) === 0 ? (                    
                     <BiAperture/>
                   ):(
-                     parseInt(cell['active']) === -1?(      
+                     parseInt(cell['active']) === -1?(                            
                         <FaFlag/>
                      ):(
                         <FaBomb/>
