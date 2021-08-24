@@ -1,35 +1,67 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import "./App.css";
 import Table from "./components/Table";
 import Inputs from "./components/Inputs";
 import Container from "react-bootstrap/Container";
 import "bootstrap/dist/css/bootstrap.min.css";
+import io from 'socket.io-client';
+
+const socket = io(`http://${window.location.hostname}:4000`);
 
 function App() {
-  const [size, setSize] = useState(0);
-  const [matriz, setMatriz] = useState([]);
 
-  /**
-   *
-   * @param {*} event - metodo donde se llama al websocket para inicializar la matriz
-   */
+  const [connect, setConnect] = useState(false);
+  const [size, setSize] = useState(0);
+  const [boardView, setboardView] = useState([]); //matriz que utiliza la vista
+  const [boardServer, setboardServer] = useState([]); //matriz que utiliza el server
+  const [flags, setFlags] = useState([]);
+
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log('conectado al servidor',);
+      setConnect(true)
+    });    
+    socket.on('disconnect', () => {
+      console.log('Perdimos conección con el servidor');
+      setConnect(false)
+    });  
+  }, [connect]);
+
+  const convertBoard = (board,flag)=>{    
+    let mat = []
+    for (var i = 0; i < board.length; i++) {
+      let row = []
+      for (var j = 0; j < board.length; j++) {       
+        row.push( {x: i, y: j , value: board[i][j], active:flag[i][j]} )        
+      }
+      mat.push(row)
+    }
+    return mat;
+  }
+
   const pressSubmit = (event) => {
-    if (size <= 0) {
-      alert("El tamaño de la matriz debe ser mayor a cero");
+    if (size <= 4) {
+
+      alert("El tamaño de la matriz debe ser mayor a 4");
+
     } else {
+
       if (size > 100) {
-        alert("Alcanzo el limite de filas y columnas");
+
+        alert("El limite de tamaño es 100");
+
       } else {
-        setMatriz([]);
-        var mat = [];
-        for (var i = 0; i < size; i++) {
-          var row = [];
-          for (var j = 0; j < size; j++) {
-            row.push("" + i +','+ j);
-          }
-          mat.push(row);
-        }
-        setMatriz(mat);
+       
+        socket.emit('createBoard', parseInt(size), (resp) => {
+          
+          //creación de una matriz de objetos donde se indica las posiciones
+          //y el valor correspondiente en esa posición
+          setboardServer(resp.board)
+          setboardView(convertBoard(resp.board,resp.flags))
+          setFlags(resp.flags)
+
+        });
+
       }
     }
     event.preventDefault();
@@ -39,20 +71,58 @@ function App() {
     setSize(event.target.value);
   };
 
-  const clickPosition= (position) => {
-    alert('seleccionaste la posición: ' + position)
+  const clickPosition= (posx,posy) => {
+    /*
+      en el tablero: -1 : Una mina, el resto son números de 0 hasta 8 según la cantidad de minas adyacentes
+      en la segunda matriz: 0 : no se ha tocado el cuadro, -1 : pusieron una bandera, 1 : ya fue tocada        
+    */    
+    alert('seleccionaste la posición: ' + posx + ',' +posy)
+
+    socket.emit(
+      'performAction',
+      {
+        coords: { x: parseInt(posx) , y: parseInt(posy) },
+        board: boardServer,
+        flags: flags,
+      },
+      (resp) => {
+
+        if(resp.condition === 'lose'){
+          //recordar que al momento de pisar una mina no se esta actualizando la matriz flag de esa posición en -1 solo se envia el mensaje: lose
+          //preguntar como se envia una petición para simular el click de una cordenada como bandera
+          alert('pisaste una mina!')
+          setboardServer([])        
+          setboardView(convertBoard([],[]))
+          setFlags(resp.flags)
+        }else{          
+          console.log('board: ',resp.board)
+          console.log('flags: ',resp.flags)
+          console.log('condition',resp.condition)
+          setboardServer(resp.board)        
+          setboardView(convertBoard(resp.board,resp.flags))
+          setFlags(resp.flags)
+        }
+      }
+    );
   }
 
   return (
-    //Contenedor principal
+    //Contenedor principal    
     <Container fluid="True">
       <div className="Form-container">
         <Inputs pressSubmit={pressSubmit} changeSize={changeSize} />
       </div>
       <Container className="Table-container" fluid="True">
-        <Table matriz={matriz} clickPosition={clickPosition} />
+        { connect ? (
+          <Table board={boardView} clickPosition={clickPosition} />
+                    
+        ):(
+          <div>No se pudo entablecer conexión con el socket</div>
+        )        
+        }          
       </Container>
-    </Container>
+    </Container> 
+   
   );
 }
 
