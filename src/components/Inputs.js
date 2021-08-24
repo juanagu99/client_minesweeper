@@ -15,11 +15,11 @@ function Inputs(props) {
           onChange={props.changeSize}
         />
       </Form.Group>
-      <Form.Group className="mb-1">
+      <>
         <Button variant="secondary" type="submit">
-          Ingresar
+          Reiniciar matriz
         </Button>
-      </Form.Group>
+      </>
     </Form>
   );
 }

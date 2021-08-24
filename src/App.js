@@ -1,67 +1,65 @@
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import Table from "./components/Table";
 import Inputs from "./components/Inputs";
 import Container from "react-bootstrap/Container";
 import "bootstrap/dist/css/bootstrap.min.css";
-import io from 'socket.io-client';
+import io from "socket.io-client";
 
 const socket = io(`http://${window.location.hostname}:4000`);
 
 function App() {
 
-  const [connect, setConnect] = useState(false);
-  const [size, setSize] = useState(0);
-  const [boardView, setboardView] = useState([]); //matriz que utiliza la vista
-  const [boardServer, setboardServer] = useState([]); //matriz que utiliza el server
-  const [flags, setFlags] = useState([]);
+  const [connect, setConnect] = useState(false); //me indica que hay conexión con el socket
+  const [size, setSize] = useState(0);//me indica el tamñao de la matriz
+  const [boardView, setboardView] = useState([]); //matriz que utiliza la vista para pintar la matriz
+  const [boardServer, setboardServer] = useState([]); //matriz que utiliza el server donde contiene los valores que contiene cada boton
+  const [flags, setFlags] = useState([]); //matriz que contiene las banderas de la aplicación, se utiliza para saber que botones se presionaron
 
   useEffect(() => {
-    socket.on('connect', () => {
-      console.log('conectado al servidor',);
-      setConnect(true)
-    });    
-    socket.on('disconnect', () => {
-      console.log('Perdimos conección con el servidor');
-      setConnect(false)
-    });  
+    socket.on("connect", () => {
+      console.log("conectado al servidor");
+      setConnect(true);
+    });
+    socket.on("disconnect", () => {
+      console.log("Perdimos conección con el servidor");
+      setConnect(false);
+    });
   }, [connect]);
 
-  const convertBoard = (board,flag)=>{    
-    let mat = []
+  const convertBoard = (board, flag, hiden) => {
+    let mat = [];
     for (var i = 0; i < board.length; i++) {
-      let row = []
-      for (var j = 0; j < board.length; j++) {       
-        row.push( {x: i, y: j , value: board[i][j], active:flag[i][j]} )        
+      let row = [];
+      for (var j = 0; j < board.length; j++) {
+        row.push({
+          x: i,
+          y: j,
+          value: board[i][j],
+          active: flag[i][j],
+          hiden: hiden,
+        });
       }
-      mat.push(row)
+      mat.push(row);
     }
     return mat;
-  }
+  };
 
   const pressSubmit = (event) => {
+    console.log(event.text);
     if (size <= 4) {
-
       alert("El tamaño de la matriz debe ser mayor a 4");
-
     } else {
-
       if (size > 100) {
-
         alert("El limite de tamaño es 100");
-
       } else {
-       
-        socket.emit('createBoard', parseInt(size), (resp) => {
-          
+        socket.emit("createBoard", parseInt(size), (resp) => {
           //creación de una matriz de objetos donde se indica las posiciones
           //y el valor correspondiente en esa posición
-          setboardServer(resp.board)
-          setboardView(convertBoard(resp.board,resp.flags))
-          setFlags(resp.flags)
-
+          setboardServer(resp.board);
+          setboardView(convertBoard(resp.board, resp.flags, true));
+          setFlags(resp.flags);
         });
-
       }
     }
     event.preventDefault();
@@ -71,77 +69,71 @@ function App() {
     setSize(event.target.value);
   };
 
-  const handleClick= (e,posx,posy) => {
+  const condition = (resp) => {
+    if (resp.condition === "lose") {
+      setboardServer(resp.board);
+      setFlags(resp.flags);
+      setboardView(convertBoard(resp.board, resp.flags, false));
+      alert("pisaste una mina!");
+    } else if (resp.condition === "win") {
+      setboardServer(resp.board);
+      setFlags(resp.flags);
+      setboardView(convertBoard(resp.board, resp.flags, false));
+      alert("Ganaste!");
+    } else {
+      setboardServer(resp.board);
+      setFlags(resp.flags);
+      setboardView(convertBoard(resp.board, resp.flags, true));
+    }
+  };
 
-    /*
-      en el tablero: -1 : Una mina, el resto son números de 0 hasta 8 según la cantidad de minas adyacentes
-      en la segunda matriz: 0 : no se ha tocado el cuadro, -1 : pusieron una bandera, 1 : ya fue tocada        
-    */   
-
-    if(e.nativeEvent.which === 1){
-      
-      alert('seleccionaste la posición: ' + posx + ',' +posy)
-
+  const handleClick = (e, posx, posy) => {
+    if (e.nativeEvent.which === 1) {
+      //left click
       socket.emit(
-        'performAction',
+        "performAction",
         {
-          coords: { x: parseInt(posx) , y: parseInt(posy) },
+          coords: { x: parseInt(posx), y: parseInt(posy) },
           board: boardServer,
           flags: flags,
         },
         (resp) => {
-  
-          if(resp.condition === 'lose'){
-            //recordar que al momento de pisar una mina no se esta actualizando la matriz flag de esa posición en -1 solo se envia el mensaje: lose
-            //preguntar como se envia una petición para simular el click de una cordenada como bandera
-            alert('pisaste una mina!')
-            setboardServer([])        
-            setboardView(convertBoard([],[]))
-            setFlags(resp.flags)
-          }else if (resp.condition === 'win'){
-            alert("Ganaste!")
-            setboardServer([])        
-            setboardView(convertBoard([],[]))
-            setFlags(resp.flags)
-          }else{          
-            console.log('board: ',resp.board)
-            console.log('flags: ',resp.flags)
-            console.log('condition',resp.condition)
-            setboardServer(resp.board)        
-            setboardView(convertBoard(resp.board,resp.flags))
-            setFlags(resp.flags)
-          }
+          console.log("respuesta server:", resp);
+          condition(resp);
         }
       );
-  
-    } else if (e.nativeEvent.which === 3) {  
-      //Aqui aun no se puede ganar cuando se pone banderas    
+    } else if (e.nativeEvent.which === 3) {
+      //right click
       e.preventDefault();
-      console.log('Right click');
-      flags[posx][posy]=-1;
-      setboardView(convertBoard(boardServer,flags))
-      console.log('revisar',flags)       
-    }   
-   
-  }
+      socket.emit(
+        "setFlag",
+        {
+          coords: { x: parseInt(posx), y: parseInt(posy) },
+          board: boardServer,
+          flags: flags,
+        },
+        (resp) => {
+          console.log("respuesta server:", resp);
+          condition(resp);
+        }
+      );
+    }
+  };
 
   return (
-    //Contenedor principal    
+    //Contenedor principal
     <Container fluid="True">
       <div className="Form-container">
         <Inputs pressSubmit={pressSubmit} changeSize={changeSize} />
       </div>
       <Container className="Table-container" fluid="True">
-        { connect ? (
+        {connect ? (
           <Table board={boardView} clickPosition={handleClick} />
-                    
-        ):(
+        ) : (
           <div>No se pudo entablecer conexión con el socket</div>
-        )        
-        }          
+        )}
       </Container>
-    </Container> 
-   
+    </Container>
   );
 }
 
