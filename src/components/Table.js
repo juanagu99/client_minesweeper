@@ -32,13 +32,13 @@ const Icons = (props) => {
 };
 
 function Table(props) {
-  const items = props.board.map((row) => (
-    <tr key={Math.random()}>
-      {row.map((cell) => (
-        <td>
+  const items = props.board.map((row, index) => (
+    <tr key={index}>
+      {row.map((cell, rindex) => (
+        <td key={index+rindex}>
           {cell["hiden"] === true ? (
             <Button
-              Active
+              active
               className="board-cell"
               onClick={(e) => props.clickPosition(e, cell["x"], cell["y"])} //left clcik
               onContextMenu={(e) =>
